@@ -1,107 +1,255 @@
+import { useState } from "react"
+import { supabase } from "../lib/supabaseClient"
+import Navbar from "../components/Navbar"
+
 function AIAssistant() {
-  return (
-    <div className="min-h-screen bg-green-50 px-4 py-8">
-      <div className="mx-auto max-w-4xl">
+    const [message, setMessage] = useState("")
+    const [loading, setLoading] = useState(false)
 
-        <h1 className="text-3xl font-bold text-green-800">
-          🤖 KrishiMitra AI Assistant
-        </h1>
+    const [messages, setMessages] = useState([
+        {
+            sender: "ai",
+            text: "Namaste! 🌾 I am KrishiMitra AI. Ask me anything about crops, soil, irrigation, fertilizers, weather, or crop diseases.",
+        },
+    ])
 
-        <p className="mt-2 text-gray-600">
-          Ask questions about crops, soil, irrigation and farming.
-        </p>
+    const sendMessage = async () => {
+        if (!message.trim() || loading) return
 
-        {/* Chat Area */}
+        const userMessage = message.trim()
 
-        <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-lg">
+        setMessages((previous) => [
+            ...previous,
+            {
+                sender: "user",
+                text: userMessage,
+            },
+        ])
 
-          <div className="h-96 overflow-y-auto p-6">
+        setMessage("")
+        setLoading(true)
 
-            {/* AI Message */}
+        try {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser()
 
-            <div className="flex gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
-                🤖
-              </div>
+            if (!user) {
+                alert("Please login first.")
+                setLoading(false)
+                return
+            }
 
-              <div className="max-w-xl rounded-2xl rounded-tl-none bg-green-50 p-4">
-                <p className="font-semibold text-green-800">
-                  KrishiMitra AI
-                </p>
+            const { data, error } = await supabase.functions.invoke(
+                "ai-assistant",
+                {
+                    body: {
+                        message: userMessage,
+                    },
+                }
+            )
 
-                <p className="mt-1 text-gray-700">
-                  Hello! 👋 I can help you with crop selection, soil,
-                  irrigation, diseases and other farming questions.
-                </p>
-              </div>
+            if (error) {
+                console.error(error)
+                throw new Error(error.message)
+            }
+
+            if (data?.error) {
+                throw new Error(data.error)
+            }
+
+            setMessages((previous) => [
+                ...previous,
+                {
+                    sender: "ai",
+                    text:
+                        data?.answer ||
+                        "Sorry, I could not generate an answer.",
+                },
+            ])
+        } catch (error) {
+            console.error(error)
+
+            setMessages((previous) => [
+                ...previous,
+                {
+                    sender: "ai",
+                    text:
+                        "⚠️ Sorry, I could not connect to the AI service. Please try again.",
+                },
+            ])
+        }
+
+        setLoading(false)
+    }
+
+    const handleKeyDown = (event) => {
+        if (event.key === "Enter") {
+            sendMessage()
+        }
+    }
+
+    const askQuestion = (question) => {
+        setMessage(question)
+    }
+
+    return (
+        <>
+            <Navbar />
+
+            <div className="min-h-screen bg-green-50 p-8">
+                <div className="mx-auto max-w-4xl">
+
+                    <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
+
+                        {/* Header */}
+                        <div className="bg-green-800 p-6 text-white">
+                            <h1 className="text-3xl font-bold">
+                                🤖 KrishiMitra AI Assistant
+                            </h1>
+
+                            <p className="mt-2 text-green-100">
+                                Powered by Gemini AI
+                            </p>
+                        </div>
+
+                        {/* Messages */}
+                        <div className="h-[500px] overflow-y-auto p-6">
+
+                            {messages.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className={`mb-5 flex ${
+                                        item.sender === "user"
+                                            ? "justify-end"
+                                            : "justify-start"
+                                    }`}
+                                >
+                                    <div
+                                        className={`max-w-[80%] rounded-2xl px-5 py-4 ${
+                                            item.sender === "user"
+                                                ? "bg-green-700 text-white"
+                                                : "bg-gray-100 text-gray-800"
+                                        }`}
+                                    >
+                                        <p className="text-sm font-semibold">
+                                            {item.sender === "user"
+                                                ? "You"
+                                                : "KrishiMitra AI"}
+                                        </p>
+
+                                        <p className="mt-2 whitespace-pre-wrap leading-relaxed">
+                                            {item.text}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {loading && (
+                                <div className="mb-5 flex justify-start">
+                                    <div className="rounded-2xl bg-gray-100 px-5 py-4 text-gray-600">
+                                        🤖 KrishiMitra AI is thinking...
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* Suggested Questions */}
+                        <div className="border-t bg-green-50 p-4">
+
+                            <p className="mb-3 text-sm font-semibold text-gray-600">
+                                Try asking:
+                            </p>
+
+                            <div className="flex flex-wrap gap-2">
+
+                                <button
+                                    onClick={() =>
+                                        askQuestion(
+                                            "Which crop is suitable for black soil?"
+                                        )
+                                    }
+                                    className="rounded-full bg-white px-4 py-2 text-sm shadow hover:bg-green-100"
+                                >
+                                    🌾 Best crop for black soil
+                                </button>
+
+                                <button
+                                    onClick={() =>
+                                        askQuestion(
+                                            "When should I irrigate my crop?"
+                                        )
+                                    }
+                                    className="rounded-full bg-white px-4 py-2 text-sm shadow hover:bg-green-100"
+                                >
+                                    💧 Irrigation advice
+                                </button>
+
+                                <button
+                                    onClick={() =>
+                                        askQuestion(
+                                            "How can I identify crop disease?"
+                                        )
+                                    }
+                                    className="rounded-full bg-white px-4 py-2 text-sm shadow hover:bg-green-100"
+                                >
+                                    🦠 Disease help
+                                </button>
+
+                                <button
+                                    onClick={() =>
+                                        askQuestion(
+                                            "What fertilizer should I use?"
+                                        )
+                                    }
+                                    className="rounded-full bg-white px-4 py-2 text-sm shadow hover:bg-green-100"
+                                >
+                                    🌱 Fertilizer advice
+                                </button>
+
+                            </div>
+                        </div>
+
+                        {/* Input */}
+                        <div className="flex gap-3 border-t p-5">
+
+                            <input
+                                type="text"
+                                value={message}
+                                onChange={(event) =>
+                                    setMessage(event.target.value)
+                                }
+                                onKeyDown={handleKeyDown}
+                                placeholder="Ask your farming question..."
+                                disabled={loading}
+                                className="flex-1 rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-600 disabled:bg-gray-100"
+                            />
+
+                            <button
+                                onClick={sendMessage}
+                                disabled={loading}
+                                className="rounded-xl bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800 disabled:opacity-50"
+                            >
+                                {loading ? "Thinking..." : "Send 🚀"}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <div className="mt-6 rounded-xl border border-green-300 bg-green-50 p-5">
+                        <p className="text-sm text-green-800">
+                            🤖 <strong>Real AI:</strong> KrishiMitra uses a
+                            secure backend connection to Gemini. Your API key
+                            is not exposed in the browser.
+                        </p>
+                    </div>
+
+                </div>
             </div>
-
-            {/* Demo User Message */}
-
-            <div className="mt-6 flex justify-end">
-
-              <div className="max-w-xl rounded-2xl rounded-tr-none bg-green-700 p-4 text-white">
-                Which crop is suitable for black soil?
-              </div>
-
-            </div>
-
-            {/* Demo AI Response */}
-
-            <div className="mt-6 flex gap-3">
-
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
-                🤖
-              </div>
-
-              <div className="max-w-xl rounded-2xl rounded-tl-none bg-green-50 p-4">
-
-                <p className="font-semibold text-green-800">
-                  KrishiMitra AI
-                </p>
-
-                <p className="mt-1 text-gray-700">
-                  Black soil is generally suitable for crops such as
-                  cotton, soybean and some cereals. The best choice
-                  depends on factors such as rainfall, season and
-                  soil nutrients.
-                </p>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Message Input */}
-
-          <div className="border-t border-gray-200 p-4">
-
-            <div className="flex gap-3">
-
-              <input
-                type="text"
-                placeholder="Ask your farming question..."
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
-              />
-
-              <button className="rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800">
-                Send
-              </button>
-
-            </div>
-
-            <p className="mt-2 text-xs text-gray-500">
-              ⚠️ Demo assistant. Real AI integration will be connected later.
-            </p>
-
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-  )
+        </>
+    )
 }
 
 export default AIAssistant

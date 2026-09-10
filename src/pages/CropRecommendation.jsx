@@ -1,102 +1,133 @@
+import { useState } from "react"
+import { supabase } from "../lib/supabaseClient"
+import Navbar from "../components/Navbar"
+
 function CropRecommendation() {
-  return (
-    <div className="min-h-screen bg-green-50 px-4 py-8">
+    const [soilType, setSoilType] = useState("")
+    const [season, setSeason] = useState("")
+    const [crop, setCrop] = useState("")
+    const [message, setMessage] = useState("")
 
-      <div className="mx-auto max-w-3xl">
+    const getRecommendation = async () => {
+        if (!soilType || !season) {
+            setMessage("Please select soil type and season.")
+            return
+        }
 
-        <h1 className="text-3xl font-bold text-green-800">
-          🌱 Crop Recommendation
-        </h1>
+        let recommendedCrop = "Wheat"
 
-        <p className="mt-2 text-gray-600">
-          Enter your farm details to get a suitable crop recommendation.
-        </p>
+        if (soilType === "Black Soil" && season === "Kharif") {
+            recommendedCrop = "Cotton"
+        } else if (soilType === "Black Soil") {
+            recommendedCrop = "Wheat"
+        } else if (soilType === "Red Soil") {
+            recommendedCrop = "Groundnut"
+        } else if (soilType === "Alluvial Soil") {
+            recommendedCrop = "Rice"
+        }
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-lg">
+        setCrop(recommendedCrop)
 
-          <div>
-            <label className="block font-medium text-gray-700">
-              Soil Type
-            </label>
+        const {
+            data: { user },
+        } = await supabase.auth.getUser()
 
-            <select className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3">
-              <option>Select soil type</option>
-              <option>Black Soil</option>
-              <option>Red Soil</option>
-              <option>Alluvial Soil</option>
-              <option>Loamy Soil</option>
-              <option>Sandy Soil</option>
-            </select>
-          </div>
+        if (!user) {
+            setMessage("Please login first.")
+            return
+        }
 
-          <div className="mt-5">
-            <label className="block font-medium text-gray-700">
-              Location
-            </label>
+        const { error } = await supabase
+            .from("crop_recommendations")
+            .insert({
+                user_id: user.id,
+                soil_type: soilType,
+                season: season,
+                recommended_crop: recommendedCrop,
+            })
 
-            <input
-              type="text"
-              placeholder="Enter your location"
-              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3"
-            />
-          </div>
+        if (error) {
+            console.error(error)
+            setMessage("Could not save recommendation.")
+            return
+        }
 
-          <div className="mt-5">
-            <label className="block font-medium text-gray-700">
-              Farm Area (acres)
-            </label>
+        setMessage("Recommendation saved successfully!")
+    }
 
-            <input
-              type="number"
-              placeholder="Enter farm area"
-              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3"
-            />
-          </div>
+    return (
+        <>
+            <Navbar />
 
-          <div className="mt-5">
-            <label className="block font-medium text-gray-700">
-              Water Availability
-            </label>
+            <div className="min-h-screen bg-green-50 p-8">      
+                <div className="mx-auto max-w-2xl rounded-2xl bg-white p-8 shadow-lg">
 
-            <select className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3">
-              <option>Select availability</option>
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
-            </select>
-          </div>
+                <h1 className="text-3xl font-bold text-green-800">
+                    🌱 Crop Recommendation
+                </h1>
 
-          <button className="mt-7 w-full rounded-lg bg-green-700 py-3 font-semibold text-white hover:bg-green-800">
-            🤖 Get Recommendation
-          </button>
+                <p className="mt-2 text-gray-600">
+                    Get a crop recommendation based on your soil and season.
+                </p>
 
-        </div>
+                <label className="mt-6 block font-medium">
+                    Soil Type
+                </label>
 
-        {/* Demo Result */}
+                <select
+                    value={soilType}
+                    onChange={(e) => setSoilType(e.target.value)}
+                    className="mt-2 w-full rounded-lg border p-3"
+                >
+                    <option value="">Select soil type</option>
+                    <option>Black Soil</option>
+                    <option>Red Soil</option>
+                    <option>Alluvial Soil</option>
+                </select>
 
-        <div className="mt-8 rounded-2xl border border-green-200 bg-white p-6 shadow">
+                <label className="mt-5 block font-medium">
+                    Season
+                </label>
 
-          <h2 className="text-xl font-bold text-green-800">
-            🌾 Sample Recommendation
-          </h2>
+                <select
+                    value={season}
+                    onChange={(e) => setSeason(e.target.value)}
+                    className="mt-2 w-full rounded-lg border p-3"
+                >
+                    <option value="">Select season</option>
+                    <option>Kharif</option>
+                    <option>Rabi</option>
+                    <option>Zaid</option>
+                </select>
 
-          <p className="mt-4 text-gray-700">
-            Based on the provided farm conditions, suitable crops could
-            include <strong>Wheat</strong>, <strong>Maize</strong>, or
-            <strong> Chickpea</strong>.
-          </p>
+                <button
+                    onClick={getRecommendation}
+                    className="mt-6 w-full rounded-lg bg-green-700 py-3 font-semibold text-white hover:bg-green-800"
+                >
+                    Get Recommendation
+                </button>
 
-          <p className="mt-3 text-sm text-gray-500">
-            ⚠️ This is currently demo data. AI-based recommendations
-            will be connected later.
-          </p>
+                {crop && (
+                    <div className="mt-6 rounded-lg bg-green-100 p-5">
+                        <p className="text-gray-600">
+                            Recommended Crop:
+                        </p>
 
-        </div>
+                        <p className="mt-1 text-2xl font-bold text-green-800">
+                            🌾 {crop}
+                        </p>
+                    </div>
+                )}
 
-      </div>
+                {message && (
+                    <p className="mt-4 text-center text-gray-600">
+                        {message}
+                    </p>
+                )}
 
-    </div>
-  )
+            </div>
+            </div>
+        </>
+    )
 }
-
 export default CropRecommendation

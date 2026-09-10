@@ -4,6 +4,7 @@ import Home from "./pages/Home"
 import Dashboard from "./pages/Dashboard"
 import Login from "./pages/Login"
 import Register from "./pages/Register"
+
 import CropRecommendation from "./pages/CropRecommendation"
 import DiseaseDetection from "./pages/DiseaseDetection"
 import Irrigation from "./pages/Irrigation"
@@ -12,58 +13,120 @@ import Weather from "./pages/Weather"
 import AIAssistant from "./pages/AIAssistant"
 import Analytics from "./pages/Analytics"
 import Admin from "./pages/Admin"
+import Farms from "./pages/Farms"
+
+import ProtectedRoute from "./ProtectedRoute"
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        <Route path="/" element={<Home />} />
+        {/* Public Pages */}
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/register"
+          element={<Register />}
+        />
 
-        <Route path="/register" element={<Register />} />
+        {/* Protected Pages */}
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/crop-recommendation"
-          element={<CropRecommendation />}
+          element={
+            <ProtectedRoute>
+              <CropRecommendation />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/disease-detection"
-          element={<DiseaseDetection />}
+          element={
+            <ProtectedRoute>
+              <DiseaseDetection />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/irrigation"
-          element={<Irrigation />}
+          element={
+            <ProtectedRoute>
+              <Irrigation />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/soil-analysis"
-          element={<SoilAnalysis />}
+          element={
+            <ProtectedRoute>
+              <SoilAnalysis />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/weather"
-          element={<Weather />}
+          element={
+            <ProtectedRoute>
+              <Weather />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/ai-assistant"
-          element={<AIAssistant />}
+          element={
+            <ProtectedRoute>
+              <AIAssistant />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/analytics"
-          element={<Analytics />}
+          element={
+            <ProtectedRoute>
+              <Analytics />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/admin"
-          element={<Admin />}
+          element={
+            <ProtectedRoute>
+              <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/farms"
+          element={
+            <ProtectedRoute>
+              <Farms />
+            </ProtectedRoute>
+          }
         />
 
       </Routes>

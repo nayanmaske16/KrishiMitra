@@ -1,86 +1,207 @@
+import { useState } from "react"
+import { supabase } from "../lib/supabaseClient"
+import Navbar from "../components/Navbar"
+
 function DiseaseDetection() {
-  return (
-    <div className="min-h-screen bg-green-50 px-4 py-8">
-      <div className="mx-auto max-w-3xl">
+    const [image, setImage] = useState(null)
+    const [preview, setPreview] = useState("")
+    const [result, setResult] = useState(null)
+    const [loading, setLoading] = useState(false)
 
-        <h1 className="text-3xl font-bold text-green-800">
-          🦠 Crop Disease Detection
-        </h1>
+    const handleImageChange = (event) => {
+        const file = event.target.files[0]
 
-        <p className="mt-2 text-gray-600">
-          Upload a crop image to identify possible diseases.
-        </p>
+        if (!file) return
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-lg">
+        setImage(file)
+        setPreview(URL.createObjectURL(file))
+        setResult(null)
+    }
 
-          <div className="rounded-xl border-2 border-dashed border-green-300 p-10 text-center">
+    const detectDisease = async () => {
+        if (!image) {
+            alert("Please upload a crop image first.")
+            return
+        }
 
-            <div className="text-5xl">📷</div>
+        const {
+            data: { user },
+        } = await supabase.auth.getUser()
 
-            <h2 className="mt-4 text-xl font-semibold">
-              Upload Crop Image
-            </h2>
+        if (!user) {
+            alert("Please login first.")
+            return
+        }
 
-            <p className="mt-2 text-gray-500">
-              JPG, PNG or JPEG
-            </p>
+        setLoading(true)
 
-            <input
-              type="file"
-              accept="image/*"
-              className="mt-5 block w-full text-sm text-gray-600"
-            />
+        try {
+            // Create a unique file name
+            const fileName = `${user.id}/${Date.now()}-${image.name}`
 
-          </div>
+            // Upload image to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from("crop-images")
+                .upload(fileName, image)
 
-          <button className="mt-7 w-full rounded-lg bg-green-700 py-3 font-semibold text-white hover:bg-green-800">
-            🤖 Analyze Image
-          </button>
+            if (uploadError) {
+                console.error(uploadError)
+                alert("Could not upload image.")
+                setLoading(false)
+                return
+            }
 
-        </div>
+            // Get public image URL
+            const { data: publicUrlData } = supabase.storage
+                .from("crop-images")
+                .getPublicUrl(fileName)
 
-        {/* Demo Result */}
+            const imageUrl = publicUrlData.publicUrl
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow">
+            // Demo AI result
+            const disease = "Leaf Spot"
+            const confidence = 92
+            const recommendation =
+                "Remove infected leaves and use a suitable fungicide."
 
-          <h2 className="text-xl font-bold text-green-800">
-            🔍 Sample Analysis
-          </h2>
+            // Save detection in database
+            const { error: databaseError } = await supabase
+                .from("disease_detections")
+                .insert({
+                    user_id: user.id,
+                    image_url: imageUrl,
+                    disease_name: disease,
+                    confidence: confidence,
+                    recommendation: recommendation,
+                })
 
-          <div className="mt-5 rounded-lg bg-green-50 p-4">
+            if (databaseError) {
+                console.error(databaseError)
+                alert("DATABASE ERROR: " + databaseError.message)
+                setLoading(false)
+                return
+            }
 
-            <p className="font-semibold">
-              Possible Disease
-            </p>
 
-            <p className="mt-1 text-lg text-green-700">
-              Leaf Blight
-            </p>
+            setResult({
+                disease: disease,
+                confidence: confidence + "%",
+                recommendation: recommendation,
+                imageUrl: imageUrl,
+            })
 
-            <p className="mt-4 font-semibold">
-              Suggested Action
-            </p>
+            alert("Disease detection saved successfully!")
+        } catch (error) {
+            console.error(error)
+            alert("Something went wrong.")
+        }
 
-            <p className="mt-1 text-gray-600">
-              Remove affected leaves and consult an agricultural expert
-              for appropriate treatment.
-            </p>
+        setLoading(false)
+    }
 
-            <p className="mt-4 text-sm text-gray-500">
-              Confidence: 92%
-            </p>
+    return (
+        <>
+            <Navbar />
 
-          </div>
+            <div className="min-h-screen bg-green-50 p-8">
+                <div className="mx-auto max-w-4xl">
 
-          <p className="mt-4 text-sm text-gray-500">
-            ⚠️ Demo result. AI image analysis will be connected later.
-          </p>
+                    <div className="rounded-2xl bg-white p-8 shadow-lg">
 
-        </div>
+                        <h1 className="text-3xl font-bold text-green-800">
+                            🦠 Crop Disease Detection
+                        </h1>
 
-      </div>
-    </div>
-  )
+                        <p className="mt-2 text-gray-600">
+                            Upload a crop image to check for possible diseases.
+                        </p>
+
+                        <div className="mt-8">
+                            <label className="block font-semibold text-gray-700">
+                                Upload Crop Image
+                            </label>
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                className="mt-3 w-full rounded-lg border border-gray-300 p-3"
+                            />
+                        </div>
+
+                        {preview && (
+                            <div className="mt-6">
+                                <h2 className="font-bold text-green-800">
+                                    Image Preview
+                                </h2>
+
+                                <img
+                                    src={preview}
+                                    alt="Crop preview"
+                                    className="mt-3 max-h-80 rounded-xl border object-contain"
+                                />
+                            </div>
+                        )}
+
+                        <button
+                            onClick={detectDisease}
+                            disabled={loading}
+                            className="mt-6 rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800 disabled:opacity-50"
+                        >
+                            {loading
+                                ? "Uploading & Detecting..."
+                                : "🔍 Detect Disease"}
+                        </button>
+
+                        {result && (
+                            <div className="mt-8 rounded-2xl bg-green-50 p-6">
+
+                                <h2 className="text-2xl font-bold text-green-800">
+                                    🔬 Detection Result
+                                </h2>
+
+                                <div className="mt-5 grid gap-4 md:grid-cols-2">
+
+                                    <div className="rounded-xl bg-white p-5 shadow">
+                                        <p className="text-gray-500">
+                                            Disease
+                                        </p>
+
+                                        <p className="mt-2 text-xl font-bold text-red-600">
+                                            {result.disease}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl bg-white p-5 shadow">
+                                        <p className="text-gray-500">
+                                            Confidence
+                                        </p>
+
+                                        <p className="mt-2 text-xl font-bold text-green-700">
+                                            {result.confidence}
+                                        </p>
+                                    </div>
+
+                                </div>
+
+                                <div className="mt-4 rounded-xl bg-white p-5 shadow">
+                                    <p className="font-bold text-green-800">
+                                        🌱 Recommendation
+                                    </p>
+
+                                    <p className="mt-2 text-gray-600">
+                                        {result.recommendation}
+                                    </p>
+                                </div>
+
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+        </>
+    )
 }
 
 export default DiseaseDetection

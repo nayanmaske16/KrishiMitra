@@ -1,128 +1,182 @@
+import { useState } from "react"
+import Navbar from "../components/Navbar"
+
 function Weather() {
-  return (
-    <div className="min-h-screen bg-green-50 px-4 py-8">
-      <div className="mx-auto max-w-4xl">
+    const [city, setCity] = useState("")
+    const [weather, setWeather] = useState(null)
+    const [loading, setLoading] = useState(false)
 
-        <h1 className="text-3xl font-bold text-green-800">
-          🌦️ Farm Weather
-        </h1>
+    const checkWeather = async () => {
+        if (!city.trim()) {
+            alert("Please enter a city.")
+            return
+        }
 
-        <p className="mt-2 text-gray-600">
-          Check weather conditions and plan your farming activities.
-        </p>
+        setLoading(true)
+        setWeather(null)
 
-        {/* Location */}
+        try {
+            // Find city coordinates
+            const locationResponse = await fetch(
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+                    city
+                )}&count=1&language=en&format=json`
+            )
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-lg">
+            const locationData = await locationResponse.json()
 
-          <label className="block font-medium text-gray-700">
-            Farm Location
-          </label>
+            if (!locationData.results || locationData.results.length === 0) {
+                alert("City not found.")
+                setLoading(false)
+                return
+            }
 
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+            const location = locationData.results[0]
 
-            <input
-              type="text"
-              placeholder="Enter city or village"
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-3"
-            />
+            // Get real weather
+            const weatherResponse = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&timezone=auto`
+            )
 
-            <button className="rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800">
-              Check Weather
-            </button>
+            const weatherData = await weatherResponse.json()
 
-          </div>
+            setWeather({
+                city: location.name,
+                country: location.country,
+                temperature: weatherData.current.temperature_2m,
+                humidity: weatherData.current.relative_humidity_2m,
+                rainfall: weatherData.current.precipitation,
+                condition: getWeatherCondition(
+                    weatherData.current.weather_code
+                ),
+            })
+        } catch (error) {
+            console.error(error)
+            alert("Could not fetch weather data.")
+        }
 
-        </div>
+        setLoading(false)
+    }
 
-        {/* Current Weather */}
+    const getWeatherCondition = (code) => {
+        if (code === 0) return "Clear Sky"
+        if ([1, 2, 3].includes(code)) return "Partly Cloudy"
+        if ([45, 48].includes(code)) return "Foggy"
+        if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle"
+        if ([61, 63, 65, 66, 67].includes(code)) return "Rain"
+        if ([71, 73, 75, 77].includes(code)) return "Snow"
+        if ([80, 81, 82].includes(code)) return "Rain Showers"
+        if ([95, 96, 99].includes(code)) return "Thunderstorm"
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-lg">
+        return "Unknown"
+    }
 
-          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+    return (
+        <>
+            <Navbar />
 
-            <div>
-              <p className="text-gray-500">
-                Current Weather
-              </p>
+            <div className="min-h-screen bg-green-50 p-8">
+                <div className="mx-auto max-w-4xl">
 
-              <h2 className="mt-2 text-2xl font-bold">
-                Nagpur, Maharashtra
-              </h2>
+                    <div className="rounded-2xl bg-white p-8 shadow-lg">
 
-              <p className="mt-1 text-gray-500">
-                Partly Cloudy
-              </p>
+                        <h1 className="text-3xl font-bold text-green-800">
+                            🌦️ Weather Information
+                        </h1>
+
+                        <p className="mt-2 text-gray-600">
+                            Check real-time weather conditions for your location.
+                        </p>
+
+                        <div className="mt-8 flex gap-3">
+
+                            <input
+                                type="text"
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                placeholder="Enter city name"
+                                className="flex-1 rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-green-600"
+                            />
+
+                            <button
+                                onClick={checkWeather}
+                                disabled={loading}
+                                className="rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800 disabled:opacity-50"
+                            >
+                                {loading ? "Loading..." : "Check Weather"}
+                            </button>
+
+                        </div>
+
+                        {weather && (
+                            <div className="mt-8 rounded-2xl bg-green-50 p-6">
+
+                                <h2 className="text-2xl font-bold text-green-800">
+                                    📍 {weather.city}, {weather.country}
+                                </h2>
+
+                                <div className="mt-6 grid gap-4 md:grid-cols-4">
+
+                                    <div className="rounded-xl bg-white p-5 shadow">
+                                        <p className="text-gray-500">
+                                            Temperature
+                                        </p>
+                                        <p className="mt-2 text-3xl font-bold text-green-700">
+                                            {weather.temperature}°C
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl bg-white p-5 shadow">
+                                        <p className="text-gray-500">
+                                            Humidity
+                                        </p>
+                                        <p className="mt-2 text-3xl font-bold text-blue-700">
+                                            {weather.humidity}%
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl bg-white p-5 shadow">
+                                        <p className="text-gray-500">
+                                            Rainfall
+                                        </p>
+                                        <p className="mt-2 text-3xl font-bold text-cyan-700">
+                                            {weather.rainfall} mm
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl bg-white p-5 shadow">
+                                        <p className="text-gray-500">
+                                            Condition
+                                        </p>
+                                        <p className="mt-2 text-xl font-bold text-gray-800">
+                                            {weather.condition}
+                                        </p>
+                                    </div>
+
+                                </div>
+
+                                <div className="mt-6 rounded-xl bg-white p-5 shadow">
+                                    <h3 className="font-bold text-green-800">
+                                        🌱 Farming Advice
+                                    </h3>
+
+                                    <p className="mt-2 text-gray-600">
+                                        {weather.rainfall > 5
+                                            ? "Rainfall is currently high. Consider reducing irrigation."
+                                            : weather.temperature > 35
+                                            ? "High temperature detected. Ensure adequate irrigation for crops."
+                                            : "Weather conditions look suitable for normal farming activities."}
+                                    </p>
+                                </div>
+
+                            </div>
+                        )}
+
+                    </div>
+                </div>
             </div>
-
-            <div className="text-center">
-              <div className="text-6xl">🌤️</div>
-
-              <p className="mt-2 text-4xl font-bold text-green-700">
-                28°C
-              </p>
-            </div>
-
-          </div>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-
-            <div className="rounded-lg bg-blue-50 p-4">
-              <p className="text-sm text-gray-500">
-                💧 Humidity
-              </p>
-
-              <p className="mt-1 text-xl font-bold">
-                68%
-              </p>
-            </div>
-
-            <div className="rounded-lg bg-green-50 p-4">
-              <p className="text-sm text-gray-500">
-                💨 Wind
-              </p>
-
-              <p className="mt-1 text-xl font-bold">
-                12 km/h
-              </p>
-            </div>
-
-            <div className="rounded-lg bg-yellow-50 p-4">
-              <p className="text-sm text-gray-500">
-                🌧️ Rain Chance
-              </p>
-
-              <p className="mt-1 text-xl font-bold">
-                30%
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Farming Advice */}
-
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-lg">
-
-          <h2 className="text-xl font-bold text-green-800">
-            🌱 Farming Advice
-          </h2>
-
-          <p className="mt-3 text-gray-600">
-            Weather conditions are currently suitable for routine farm
-            activities. Consider monitoring soil moisture before irrigation.
-          </p>
-
-          <p className="mt-4 text-sm text-gray-500">
-            ⚠️ Demo weather data. A real weather API will be connected later.
-          </p>
-
-        </div>
-
-      </div>
-    </div>
-  )
+        </>
+    )
 }
 
 export default Weather

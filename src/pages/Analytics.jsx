@@ -1,145 +1,158 @@
+import { useEffect, useState } from "react"
+import { supabase } from "../lib/supabaseClient"
+import Navbar from "../components/Navbar"
+
 function Analytics() {
-  return (
-    <div className="min-h-screen bg-green-50 px-4 py-8">
-      <div className="mx-auto max-w-6xl">
+    const [stats, setStats] = useState({
+        crops: 0,
+        diseases: 0,
+        soil: 0,
+        irrigation: 0,
+    })
 
-        <h1 className="text-3xl font-bold text-green-800">
-          📊 Farm Analytics
-        </h1>
+    const [loading, setLoading] = useState(true)
 
-        <p className="mt-2 text-gray-600">
-          Monitor your farm activities and performance.
-        </p>
+    useEffect(() => {
+        const loadStats = async () => {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser()
 
-        {/* Statistics */}
+            if (!user) {
+                setLoading(false)
+                return
+            }
 
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            const { count: crops } = await supabase
+                .from("crop_recommendations")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", user.id)
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">Total Farm Area</p>
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              12.5
-            </p>
-            <p className="text-sm text-gray-500">Acres</p>
-          </div>
+            const { count: diseases } = await supabase
+                .from("disease_detections")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", user.id)
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">Active Crops</p>
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              4
-            </p>
-            <p className="text-sm text-gray-500">Crops</p>
-          </div>
+            const { count: soil } = await supabase
+                .from("soil_analyses")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", user.id)
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">AI Analyses</p>
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              18
-            </p>
-            <p className="text-sm text-gray-500">This month</p>
-          </div>
+            const { count: irrigation } = await supabase
+                .from("irrigation_advice")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", user.id)
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">Farm Health</p>
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              Good
-            </p>
-            <p className="text-sm text-gray-500">Current status</p>
-          </div>
+            setStats({
+                crops: crops || 0,
+                diseases: diseases || 0,
+                soil: soil || 0,
+                irrigation: irrigation || 0,
+            })
 
-        </div>
+            setLoading(false)
+        }
 
-        {/* Crop Overview */}
+        loadStats()
+    }, [])
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow">
+    return (
+        <>
+            <Navbar />
 
-          <h2 className="text-xl font-bold text-gray-800">
-            🌱 Crop Overview
-          </h2>
+            <div className="min-h-screen bg-green-50 p-8">
+                <div className="mx-auto max-w-6xl">
 
-          <div className="mt-6 space-y-5">
+                    <h1 className="text-3xl font-bold text-green-800">
+                        📊 Farming Analytics
+                    </h1>
 
-            <div>
-              <div className="flex justify-between">
-                <span className="font-medium">Wheat</span>
-                <span className="text-sm text-gray-500">
-                  85% healthy
-                </span>
-              </div>
+                    <p className="mt-2 text-gray-600">
+                        Your KrishiMitra activity overview
+                    </p>
 
-              <div className="mt-2 h-3 rounded-full bg-gray-200">
-                <div className="h-3 w-[85%] rounded-full bg-green-600"></div>
-              </div>
+                    {loading ? (
+                        <div className="mt-8 rounded-2xl bg-white p-8 text-center shadow">
+                            <p className="text-gray-600">
+                                Loading your analytics...
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="mt-8 grid gap-6 md:grid-cols-4">
+
+                                <div className="rounded-2xl bg-white p-6 shadow">
+                                    <div className="text-4xl">🌱</div>
+                                    <p className="mt-4 text-gray-500">
+                                        Crop Recommendations
+                                    </p>
+                                    <p className="mt-2 text-3xl font-bold text-green-700">
+                                        {stats.crops}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-white p-6 shadow">
+                                    <div className="text-4xl">🦠</div>
+                                    <p className="mt-4 text-gray-500">
+                                        Disease Detections
+                                    </p>
+                                    <p className="mt-2 text-3xl font-bold text-green-700">
+                                        {stats.diseases}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-white p-6 shadow">
+                                    <div className="text-4xl">🪨</div>
+                                    <p className="mt-4 text-gray-500">
+                                        Soil Analyses
+                                    </p>
+                                    <p className="mt-2 text-3xl font-bold text-green-700">
+                                        {stats.soil}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-white p-6 shadow">
+                                    <div className="text-4xl">💧</div>
+                                    <p className="mt-4 text-gray-500">
+                                        Irrigation Records
+                                    </p>
+                                    <p className="mt-2 text-3xl font-bold text-green-700">
+                                        {stats.irrigation}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            <div className="mt-8 rounded-2xl bg-white p-6 shadow">
+                                <h2 className="text-xl font-bold text-green-800">
+                                    🌾 Your Farming Activity
+                                </h2>
+
+                                <p className="mt-3 text-gray-600">
+                                    KrishiMitra is tracking your crop,
+                                    disease, soil, and irrigation activities.
+                                </p>
+
+                                <div className="mt-5 rounded-xl bg-green-50 p-5">
+                                    <p className="font-semibold text-green-800">
+                                        Total Activities
+                                    </p>
+
+                                    <p className="mt-2 text-3xl font-bold text-green-700">
+                                        {stats.crops +
+                                            stats.diseases +
+                                            stats.soil +
+                                            stats.irrigation}
+                                    </p>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                </div>
             </div>
-
-            <div>
-              <div className="flex justify-between">
-                <span className="font-medium">Soybean</span>
-                <span className="text-sm text-gray-500">
-                  72% healthy
-                </span>
-              </div>
-
-              <div className="mt-2 h-3 rounded-full bg-gray-200">
-                <div className="h-3 w-[72%] rounded-full bg-green-600"></div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between">
-                <span className="font-medium">Maize</span>
-                <span className="text-sm text-gray-500">
-                  90% healthy
-                </span>
-              </div>
-
-              <div className="mt-2 h-3 rounded-full bg-gray-200">
-                <div className="h-3 w-[90%] rounded-full bg-green-600"></div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Recent Activity */}
-
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow">
-
-          <h2 className="text-xl font-bold text-gray-800">
-            🕒 Recent Activity
-          </h2>
-
-          <div className="mt-5 space-y-4">
-
-            <div className="rounded-lg bg-gray-50 p-4">
-              🌱 Crop recommendation completed
-              <span className="ml-2 text-sm text-gray-500">
-                2 hours ago
-              </span>
-            </div>
-
-            <div className="rounded-lg bg-gray-50 p-4">
-              🦠 Disease analysis completed
-              <span className="ml-2 text-sm text-gray-500">
-                Yesterday
-              </span>
-            </div>
-
-            <div className="rounded-lg bg-gray-50 p-4">
-              🧪 Soil analysis completed
-              <span className="ml-2 text-sm text-gray-500">
-                3 days ago
-              </span>
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-  )
+        </>
+    )
 }
 
 export default Analytics

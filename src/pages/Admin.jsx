@@ -1,156 +1,165 @@
+import { useEffect, useState } from "react"
+import { supabase } from "../lib/supabaseClient"
+import Navbar from "../components/Navbar"
+
 function Admin() {
-  return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="mx-auto max-w-6xl">
+    const [stats, setStats] = useState({
+        users: 0,
+        farms: 0,
+        crops: 0,
+        diseases: 0,
+    })
 
-        <h1 className="text-3xl font-bold text-green-800">
-          ⚙️ Admin Dashboard
-        </h1>
+    const [loading, setLoading] = useState(true)
+    const [authorized, setAuthorized] = useState(false)
 
-        <p className="mt-2 text-gray-600">
-          Manage users, agricultural data and platform activity.
-        </p>
+    useEffect(() => {
+        const checkAdmin = async () => {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser()
 
-        {/* Statistics */}
+            if (!user) {
+                window.location.href = "/login"
+                return
+            }
 
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            const { data: profile, error } = await supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", user.id)
+                .single()
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">
-              Registered Farmers
-            </p>
+            if (error || profile?.role !== "admin") {
+                alert("Access denied. Admins only.")
+                window.location.href = "/dashboard"
+                return
+            }
 
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              248
-            </p>
-          </div>
+            setAuthorized(true)
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">
-              Agricultural Experts
-            </p>
+            const { count: users } = await supabase
+                .from("profiles")
+                .select("*", { count: "exact", head: true })
 
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              24
-            </p>
-          </div>
+            const { count: farms } = await supabase
+                .from("farms")
+                .select("*", { count: "exact", head: true })
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">
-              AI Analyses
-            </p>
+            const { count: crops } = await supabase
+                .from("crop_recommendations")
+                .select("*", { count: "exact", head: true })
 
-            <p className="mt-2 text-3xl font-bold text-green-700">
-              1,426
-            </p>
-          </div>
+            const { count: diseases } = await supabase
+                .from("disease_detections")
+                .select("*", { count: "exact", head: true })
 
-          <div className="rounded-xl bg-white p-5 shadow">
-            <p className="text-sm text-gray-500">
-              Pending Requests
-            </p>
+            setStats({
+                users: users || 0,
+                farms: farms || 0,
+                crops: crops || 0,
+                diseases: diseases || 0,
+            })
 
-            <p className="mt-2 text-3xl font-bold text-orange-600">
-              12
-            </p>
-          </div>
+            setLoading(false)
+        }
 
-        </div>
+        checkAdmin()
+    }, [])
 
-        {/* Pending Requests */}
+    if (!authorized) {
+        return (
+            <div className="min-h-screen bg-green-50 flex items-center justify-center">
+                <p className="text-lg font-semibold text-green-800">
+                    Checking admin access...
+                </p>
+            </div>
+        )
+    }
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow">
+    return (
+        <>
+            <Navbar />
 
-          <h2 className="text-xl font-bold text-gray-800">
-            📋 Pending Requests
-          </h2>
+            <div className="min-h-screen bg-green-50 p-8">
+                <div className="mx-auto max-w-6xl">
 
-          <div className="mt-5 overflow-x-auto">
+                    <div className="rounded-2xl bg-white p-8 shadow-lg">
 
-            <table className="w-full text-left">
+                        <h1 className="text-3xl font-bold text-green-800">
+                            👨‍💼 Admin Dashboard
+                        </h1>
 
-              <thead>
-                <tr className="border-b">
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3">Request</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Action</th>
-                </tr>
-              </thead>
+                        <p className="mt-2 text-gray-600">
+                            KrishiMitra system overview
+                        </p>
 
-              <tbody>
+                        {loading ? (
+                            <div className="mt-8 text-center">
+                                Loading statistics...
+                            </div>
+                        ) : (
+                            <div className="mt-8 grid gap-6 md:grid-cols-4">
 
-                <tr className="border-b">
+                                <div className="rounded-xl bg-blue-50 p-6">
+                                    <div className="text-4xl">👥</div>
+                                    <h2 className="mt-3 text-lg font-bold">
+                                        Users
+                                    </h2>
+                                    <p className="mt-2 text-3xl font-bold text-blue-700">
+                                        {stats.users}
+                                    </p>
+                                </div>
 
-                  <td className="px-4 py-4">
-                    Rahul Sharma
-                  </td>
+                                <div className="rounded-xl bg-green-50 p-6">
+                                    <div className="text-4xl">🚜</div>
+                                    <h2 className="mt-3 text-lg font-bold">
+                                        Farms
+                                    </h2>
+                                    <p className="mt-2 text-3xl font-bold text-green-700">
+                                        {stats.farms}
+                                    </p>
+                                </div>
 
-                  <td className="px-4 py-4">
-                    Soil Analysis Access
-                  </td>
+                                <div className="rounded-xl bg-yellow-50 p-6">
+                                    <div className="text-4xl">🌾</div>
+                                    <h2 className="mt-3 text-lg font-bold">
+                                        Crop Recommendations
+                                    </h2>
+                                    <p className="mt-2 text-3xl font-bold text-yellow-700">
+                                        {stats.crops}
+                                    </p>
+                                </div>
 
-                  <td className="px-4 py-4">
-                    <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm">
-                      Pending
-                    </span>
-                  </td>
+                                <div className="rounded-xl bg-red-50 p-6">
+                                    <div className="text-4xl">🦠</div>
+                                    <h2 className="mt-3 text-lg font-bold">
+                                        Disease Detections
+                                    </h2>
+                                    <p className="mt-2 text-3xl font-bold text-red-700">
+                                        {stats.diseases}
+                                    </p>
+                                </div>
 
-                  <td className="px-4 py-4">
+                            </div>
+                        )}
 
-                    <button className="mr-2 rounded-lg bg-green-700 px-4 py-2 text-sm text-white">
-                      Approve
-                    </button>
+                        <div className="mt-8 rounded-xl border border-green-300 bg-green-50 p-5">
+                            <h2 className="font-bold text-green-800">
+                                🔐 Admin Access
+                            </h2>
 
-                    <button className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
-                      Reject
-                    </button>
+                            <p className="mt-2 text-sm text-green-700">
+                                Your account has administrator privileges.
+                                Only users with the admin role can access this page.
+                            </p>
+                        </div>
 
-                  </td>
-
-                </tr>
-
-                <tr>
-
-                  <td className="px-4 py-4">
-                    Priya Patel
-                  </td>
-
-                  <td className="px-4 py-4">
-                    Expert Consultation
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm">
-                      Pending
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-4">
-
-                    <button className="mr-2 rounded-lg bg-green-700 px-4 py-2 text-sm text-white">
-                      Approve
-                    </button>
-
-                    <button className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
-                      Reject
-                    </button>
-
-                  </td>
-
-                </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-  )
+                    </div>
+                </div>
+            </div>
+        </>
+    )
 }
 
 export default Admin

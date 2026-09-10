@@ -1,103 +1,156 @@
+import { useState } from "react"
+import { supabase } from "../lib/supabaseClient"
+import Navbar from "../components/Navbar"
 function Irrigation() {
-  return (
-    <div className="min-h-screen bg-green-50 px-4 py-8">
-      <div className="mx-auto max-w-3xl">
+    const [cropName, setCropName] = useState("")
+    const [soilMoisture, setSoilMoisture] = useState("")
+    const [result, setResult] = useState(null)
 
-        <h1 className="text-3xl font-bold text-green-800">
-          💧 Irrigation Advice
-        </h1>
+    const getIrrigationAdvice = async () => {
+        if (!cropName || !soilMoisture) {
+            alert("Please enter crop name and soil moisture.")
+            return
+        }
 
-        <p className="mt-2 text-gray-600">
-          Get smart water management recommendations for your farm.
-        </p>
+        const {
+            data: { user },
+        } = await supabase.auth.getUser()
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-lg">
+        if (!user) {
+            alert("Please login first.")
+            return
+        }
 
-          <div>
-            <label className="block font-medium text-gray-700">
-              Select Crop
-            </label>
+        const moisture = Number(soilMoisture)
 
-            <select className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3">
-              <option>Select crop</option>
-              <option>Wheat</option>
-              <option>Rice</option>
-              <option>Maize</option>
-              <option>Cotton</option>
-              <option>Soybean</option>
-            </select>
-          </div>
+        let irrigationNeeded
+        let waterAmount
+        let recommendation
 
-          <div className="mt-5">
-            <label className="block font-medium text-gray-700">
-              Soil Moisture
-            </label>
+        if (moisture < 30) {
+            irrigationNeeded = true
+            waterAmount = 500
+            recommendation = "Soil moisture is low. Irrigation is recommended."
+        } else if (moisture < 50) {
+            irrigationNeeded = true
+            waterAmount = 300
+            recommendation = "Moderate moisture detected. Light irrigation is recommended."
+        } else {
+            irrigationNeeded = false
+            waterAmount = 0
+            recommendation = "Soil moisture is sufficient. Irrigation is not required now."
+        }
 
-            <select className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3">
-              <option>Select moisture level</option>
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
-            </select>
-          </div>
+        const { error } = await supabase
+            .from("irrigation_advice")
+            .insert({
+                user_id: user.id,
+                crop_name: cropName,
+                soil_moisture: moisture,
+                irrigation_needed: irrigationNeeded,
+                water_amount: waterAmount,
+                recommendation: recommendation,
+            })
 
-          <div className="mt-5">
-            <label className="block font-medium text-gray-700">
-              Current Temperature (°C)
-            </label>
+        if (error) {
+            console.error(error)
+            alert("Could not save irrigation advice.")
+            return
+        }
 
-            <input
-              type="number"
-              placeholder="Enter temperature"
-              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3"
-            />
-          </div>
+        setResult({
+            irrigationNeeded,
+            waterAmount,
+            recommendation,
+        })
 
-          <button className="mt-7 w-full rounded-lg bg-green-700 py-3 font-semibold text-white hover:bg-green-800">
-            💧 Get Irrigation Advice
-          </button>
+        alert("Irrigation advice saved successfully!")
+    }
 
-        </div>
+    return (
+        <>
+            <Navbar />
 
-        {/* Demo Result */}
+            <div className="min-h-screen bg-green-50 p-8">
+                <div className="mx-auto max-w-2xl rounded-2xl bg-white p-8 shadow-lg">
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow">
+                    <h1 className="text-3xl font-bold text-green-800">
+                        💧 Smart Irrigation
+                    </h1>
 
-          <h2 className="text-xl font-bold text-green-800">
-            💧 Sample Recommendation
-          </h2>
+                    <p className="mt-2 text-gray-600">
+                        Get irrigation advice based on soil moisture.
+                    </p>
 
-          <div className="mt-5 rounded-lg bg-blue-50 p-5">
+                    <label className="mt-6 block font-medium">
+                        Crop Name
+                    </label>
 
-            <p className="text-lg font-semibold">
-              Recommended Irrigation
-            </p>
+                    <input
+                        type="text"
+                        placeholder="Example: Cotton"
+                        value={cropName}
+                        onChange={(e) => setCropName(e.target.value)}
+                        className="mt-2 w-full rounded-lg border p-3"
+                    />
 
-            <p className="mt-2 text-gray-700">
-              Moderate irrigation is recommended based on the current
-              conditions.
-            </p>
+                    <label className="mt-5 block font-medium">
+                        Soil Moisture (%)
+                    </label>
 
-            <p className="mt-4 font-semibold">
-              Suggested Timing
-            </p>
+                    <input
+                        type="number"
+                        placeholder="Example: 25"
+                        value={soilMoisture}
+                        onChange={(e) => setSoilMoisture(e.target.value)}
+                        className="mt-2 w-full rounded-lg border p-3"
+                    />
 
-            <p className="mt-1 text-gray-600">
-              Early morning or evening.
-            </p>
+                    <button
+                        onClick={getIrrigationAdvice}
+                        className="mt-6 w-full rounded-lg bg-green-700 py-3 font-semibold text-white hover:bg-green-800"
+                    >
+                        💧 Get Irrigation Advice
+                    </button>
 
-          </div>
+                    {result && (
+                        <div className="mt-6 rounded-xl bg-green-50 p-6">
 
-          <p className="mt-4 text-sm text-gray-500">
-            ⚠️ Demo result. Real-time recommendations will be connected
-            later.
-          </p>
+                            <h2 className="text-xl font-bold text-green-800">
+                                Irrigation Result
+                            </h2>
 
-        </div>
+                            <p className="mt-3">
+                                <strong>Irrigation:</strong>{" "}
+                                {result.irrigationNeeded ? "Required 💧" : "Not Required ✅"}
+                            </p>
 
-      </div>
-    </div>
-  )
+                            <p className="mt-2">
+                                <strong>Suggested Water:</strong>{" "}
+                                {result.waterAmount} litres
+                            </p>
+
+                            <p className="mt-2">
+                                <strong>Recommendation:</strong>{" "}
+                                {result.recommendation}
+                            </p>
+
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() =>
+                            window.location.href = "/dashboard"
+                        }
+                        className="mt-6 w-full rounded-lg border border-green-700 py-3 font-semibold text-green-700 hover:bg-green-50"
+                    >
+                        ← Back to Dashboard
+                    </button>
+
+                </div>
+            </div>
+        </>
+    )
 }
 
 export default Irrigation

@@ -12,7 +12,9 @@ function Home() {
           Your Smart Farming Companion
         </p>
 
-        <button className="mt-8 rounded-lg bg-green-700 px-8 py-3 text-white font-semibold hover:bg-green-800">
+        <button 
+        onClick={() => window.location.href = "/login"}
+        className="mt-8 rounded-lg bg-green-700 px-8 py-3 text-white font-semibold hover:bg-green-800">
           Get Started
         </button>
       </div>

@@ -1,111 +1,242 @@
+import { useEffect, useState } from "react"
+import { supabase } from "../lib/supabaseClient"
+import Navbar from "../components/Navbar"
+
 function Dashboard() {
-  return (
-    <div className="min-h-screen bg-gray-50">
+    const [user, setUser] = useState(null)
+    const [profile, setProfile] = useState(null)
 
-      {/* Header */}
-      <header className="bg-green-700 px-8 py-4 text-white">
-        <h1 className="text-2xl font-bold">🌾 KrishiMitra</h1>
-        <p className="text-green-100">
-          Your Smart Farming Companion
-        </p>
-      </header>
+    useEffect(() => {
+        const getUserAndProfile = async () => {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser()
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-6 py-8">
+            setUser(user)
 
-        <h2 className="text-3xl font-bold text-gray-800">
-          Farmer Dashboard
-        </h2>
+            if (user) {
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("full_name")
+                    .eq("id", user.id)
+                    .single()
 
-        <p className="mt-2 text-gray-600">
-          Welcome! Choose a service to get started.
-        </p>
+                setProfile(profileData)
+            }
+        }
 
-        {/* Feature Cards */}
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        getUserAndProfile()
+    }, [])
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <div className="text-4xl">🌱</div>
-            <h3 className="mt-4 text-xl font-bold">
-              Crop Recommendation
-            </h3>
-            <p className="mt-2 text-gray-600">
-              Find suitable crops based on your farm conditions.
-            </p>
-            <button className="mt-4 rounded-lg bg-green-700 px-5 py-2 text-white">
-              Explore
-            </button>
-          </div>
+    return (
+        <>
+            <Navbar />
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <div className="text-4xl">🦠</div>
-            <h3 className="mt-4 text-xl font-bold">
-              Disease Detection
-            </h3>
-            <p className="mt-2 text-gray-600">
-              Analyze crop problems using an image.
-            </p>
-            <button className="mt-4 rounded-lg bg-green-700 px-5 py-2 text-white">
-              Analyze
-            </button>
-          </div>
+            <div className="min-h-screen bg-green-50 p-8">
+                <div className="mx-auto max-w-6xl">
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <div className="text-4xl">💧</div>
-            <h3 className="mt-4 text-xl font-bold">
-              Irrigation Advice
-            </h3>
-            <p className="mt-2 text-gray-600">
-              Get smart water management recommendations.
-            </p>
-            <button className="mt-4 rounded-lg bg-green-700 px-5 py-2 text-white">
-              Check
-            </button>
-          </div>
+                    {/* Header */}
+                    <h1 className="text-4xl font-bold text-green-800">
+                        🌾 KrishiMitra Dashboard
+                    </h1>
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <div className="text-4xl">🧪</div>
-            <h3 className="mt-4 text-xl font-bold">
-              Soil Analysis
-            </h3>
-            <p className="mt-2 text-gray-600">
-              Understand your soil and improve crop health.
-            </p>
-            <button className="mt-4 rounded-lg bg-green-700 px-5 py-2 text-white">
-              Analyze
-            </button>
-          </div>
+                    <p className="mt-2 text-gray-600">
+                        Welcome to your smart farming dashboard
+                    </p>
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <div className="text-4xl">🌦️</div>
-            <h3 className="mt-4 text-xl font-bold">
-              Weather
-            </h3>
-            <p className="mt-2 text-gray-600">
-              Check weather information for your farm.
-            </p>
-            <button className="mt-4 rounded-lg bg-green-700 px-5 py-2 text-white">
-              View
-            </button>
-          </div>
+                    {/* Logout */}
+                    <button
+                        onClick={async () => {
+                            await supabase.auth.signOut()
+                            window.location.href = "/login"
+                        }}
+                        className="mt-4 rounded-lg bg-red-600 px-5 py-2 font-semibold text-white hover:bg-red-700"
+                    >
+                        Logout
+                    </button>
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <div className="text-4xl">🤖</div>
-            <h3 className="mt-4 text-xl font-bold">
-              AI Assistant
-            </h3>
-            <p className="mt-2 text-gray-600">
-              Ask questions and get agricultural guidance.
-            </p>
-            <button className="mt-4 rounded-lg bg-green-700 px-5 py-2 text-white">
-              Ask AI
-            </button>
-          </div>
+                    {/* User Welcome */}
+                    <div className="mt-8 rounded-2xl bg-white p-6 shadow">
+                        <h2 className="text-2xl font-bold text-green-700">
+                            Welcome, {profile?.full_name || "Farmer"}! 👋
+                        </h2>
 
-        </div>
-      </main>
-    </div>
-  )
+                        {user && (
+                            <p className="mt-2 text-gray-600">
+                                Logged in as: {user.email}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Features */}
+                    <div className="mt-8 grid gap-6 md:grid-cols-3">
+
+                        {/* My Farms */}
+                        <div
+                            onClick={() => window.location.href = "/farms"}
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">🚜</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                My Farms
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Manage your farms and field information.
+                            </p>
+                        </div>
+
+                        {/* Crop Recommendation */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/crop-recommendation"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">🌱</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                Crop Recommendation
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Get the best crop suggestions.
+                            </p>
+                        </div>
+
+                        {/* Disease Detection */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/disease-detection"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">🦠</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                Disease Detection
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Detect crop diseases using AI.
+                            </p>
+                        </div>
+
+                        {/* Irrigation */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/irrigation"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">💧</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                Smart Irrigation
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Get smart watering advice.
+                            </p>
+                        </div>
+
+                        {/* Soil Analysis */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/soil-analysis"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">🪨</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                Soil Analysis
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Analyze your soil health.
+                            </p>
+                        </div>
+
+                        {/* Weather */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/weather"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">☁️</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                Weather
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Check current farming weather.
+                            </p>
+                        </div>
+
+                        {/* AI Assistant */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/ai-assistant"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">🤖</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                AI Assistant
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Ask questions about farming.
+                            </p>
+                        </div>
+
+                        {/* Analytics */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/analytics"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">📊</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                Analytics
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                View your farming analytics.
+                            </p>
+                        </div>
+
+                        {/* Admin */}
+                        <div
+                            onClick={() =>
+                                window.location.href = "/admin"
+                            }
+                            className="cursor-pointer rounded-2xl bg-white p-6 shadow transition hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="text-4xl">👨‍💼</div>
+
+                            <h3 className="mt-4 text-xl font-bold">
+                                Admin
+                            </h3>
+
+                            <p className="mt-2 text-gray-500">
+                                Manage the KrishiMitra system.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </>
+    )
 }
 
 export default Dashboard
